@@ -1,12 +1,22 @@
 import http from 'http';
 
 export default async function handler(req, res) {
-  const { t } = req.query; // Оставляем t для совместимости с твоим API
+const origin = req.headers.origin || '';
+  // Разрешаем localhost (для отладки Flutter) и твой основной домен
+  res.setHeader('Access-Control-Allow-Origin', '*'); // Или укажи конкретный домен
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Обработка Preflight-запроса
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  const { t } = req.query;
 
   if (!t) {
     return res.status(400).json({ error: "Missing thumbnail name (?t=...)" });
   }
-
   // Базовые URL твоих ресурсов
   const statusUrl = "http://k7videocdn1.medianewsonline.com/videos/status.json";
   const phpProxyUrl = "http://k7videocdn1.medianewsonline.com/get_thumbnail.php?n=";
