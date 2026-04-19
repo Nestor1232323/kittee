@@ -9,8 +9,8 @@ export default async function handler(req, res) {
 
   // Базовые URL твоих ресурсов
   const statusUrl = "http://k7videocdn1.medianewsonline.com/videos/status.json";
-  const phpProxyUrl = "http://k7video.getenjoyment.net/get_thumbnail.php?n=";
-  const placeholderUrl = "http://k7video.getenjoyment.net/get_thumbnail.php?n=placeholder.png";
+  const phpProxyUrl = "http://k7videocdn1.medianewsonline.com/get_thumbnail.php?n=";
+  const placeholderUrl = "http://k7videocdn1.medianewsonline.com/get_thumbnail.php?n=placeholder.png";
 
   try {
     // 1. Проверяем статус (placeholder: true/false)
