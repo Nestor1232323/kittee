@@ -1,46 +1,53 @@
 import http from 'http';
 
 export default async function handler(req, res) {
-  const { t } = req.query;
+  const { t } = req.query; // Оставляем t для совместимости с твоим API
 
   if (!t) {
     return res.status(400).json({ error: "Missing thumbnail name (?t=...)" });
   }
 
-  const baseCdnUrl = "http://k7videocdn1.medianewsonline.com/videos";
+  // Базовые URL твоих ресурсов
+  const statusUrl = "http://k7videocdn1.medianewsonline.com/videos/status.json";
+  const phpProxyUrl = "http://k7video.getenjoyment.net/get_thumbnail.php?n=";
+  const placeholderUrl = "http://k7videocdn1.medianewsonline.com/videos/placeholder.png";
 
   try {
-    // 1. Проверяем статус через JSON (используем fetch, он умеет в http)
-    const statusRes = await fetch(`${baseCdnUrl}/status.json`);
+    // 1. Проверяем статус (placeholder: true/false)
+    const statusRes = await fetch(statusUrl);
     const statusData = await statusRes.json();
 
     let targetUrl;
+
     if (statusData.status === "ok" && statusData.placeholder === true) {
-      targetUrl = `${baseCdnUrl}/placeholder.png`;
+      // Если включен режим заглушки
+      targetUrl = placeholderUrl;
     } else {
-      targetUrl = `${baseCdnUrl}/${t}`;
+      // Иначе идем через твой PHP прокси на хостинге
+      targetUrl = `${phpProxyUrl}${t}`;
     }
 
-    // 2. Проксируем само изображение через модуль http для стабильности
+    // 2. Делаем финальный запрос
     http.get(targetUrl, (proxyRes) => {
-      // Переносим статус и заголовки (Content-Type)
+      // Проксируем статус ответа (200, 404 и т.д.)
       res.status(proxyRes.statusCode);
       
+      // Проксируем тип контента (image/jpeg, и т.д.)
       const contentType = proxyRes.headers['content-type'];
       if (contentType) {
         res.setHeader('Content-Type', contentType);
       }
       
-      // Кэширование
-      res.setHeader('Cache-Control', 'public, max-age=3600');
+      // Добавляем кэширование, чтобы не мучить хостинг лишний раз
+      res.setHeader('Cache-Control', 'public, max-age=1800');
 
-      // Перенаправляем поток данных (pipe) прямо в ответ
+      // Потоковая передача данных (pipe)
       proxyRes.pipe(res);
     }).on('error', (e) => {
-      res.status(500).json({ error: "CDN connection error: " + e.message });
+      res.status(500).json({ error: "Hosting proxy error: " + e.message });
     });
 
   } catch (error) {
-    return res.status(500).json({ error: "Failed to process request" });
+    return res.status(500).json({ error: "Failed to process thumbnail request" });
   }
 }
