@@ -66,7 +66,7 @@ export default async function handler(req, res) {
       uploaded_at: video.uploaded_at,
       username: video.users?.username,
       avatar_url: video.users?.avatar_url,
-      avatar_shape: video.users?.avatar_shape || 'c9_sided_cookie'
+      avatar_shape: video.users?.avatar_shape || 'circle'
     }));
 
     return res.status(200).json({
