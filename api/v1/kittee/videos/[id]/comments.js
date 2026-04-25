@@ -5,6 +5,12 @@ const supabase = createClient(process.env.kittee_SUPABASE_URL, process.env.kitte
 export default async function handler(req, res) {
   const { id } = req.query;
 
+  res.setHeader('Access-Control-Allow-Origin', '*'); 
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Session-ID');
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
   if (req.method === 'GET') {
     const { data, error } = await supabase
       .from('comments')
