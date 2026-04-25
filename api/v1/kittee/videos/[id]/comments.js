@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     const { data, error } = await supabase
       .from('comments')
       .select(`
-        id, content, created_at,
+        id, text, created_at,
         users (username, avatar_url)
       `)
       .eq('video_id', id)
