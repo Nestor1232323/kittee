@@ -43,7 +43,31 @@ export default async function handler(req, res) {
 
       return res.status(200).json(authors);
     }
+    if (g === 'updateprofile') {
+      // Извлекаем avatar_url и avatar_shape из тела запроса
+      const { avatar_url, avatar_shape, name, description } = req.body;
+      
+      // Формируем объект для обновления (только те поля, которые переданы)
+      const updateData = {};
+      if (avatar_url !== undefined) updateData.avatar_url = avatar_url;
+      if (avatar_shape !== undefined) updateData.avatar_shape = avatar_shape;
+      if (name !== undefined) updateData.name = name;
+      if (description !== undefined) updateData.description = description;
 
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ error: 'Нет данных для обновления' });
+      }
+
+      const { data, error } = await supabase
+        .from('users')
+        .update(updateData)
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return res.status(200).json({ success: true, user: data });
+    }
     if (g === 'checkprofile' || !g) {      
       const { data: user, error: userErr } = await supabase
         .from('users')

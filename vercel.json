@@ -11,6 +11,10 @@
     {
       "source": "/api/v1/kittee/videos/profile/get-subscribers",
       "destination": "/api/v1/kittee/videos/profile?g=getsub"
+    },
+    {
+      "source": "/api/v1/kittee/videos/profile/update-profile",
+      "destination": "/api/v1/kittee/videos/profile?g=updateprofile"
     }
   ]
 }
