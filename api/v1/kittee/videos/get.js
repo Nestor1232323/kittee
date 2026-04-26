@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     // Выполняем запрос к таблице videos с присоединением данных юзера (Join)
     // В Supabase (PostgREST) это делается через выборку связанных полей
    // Выполняем запрос, явно указывая связь через !user_id
-    const { data, error } = await supabase
+  const { data, error } = await supabase
       .from('videos')
       .select(`
         id, 
@@ -45,14 +45,13 @@ export default async function handler(req, res) {
         views, 
         font,
         uploaded_at,
-        users!user_id (  // ДОБАВИЛИ !user_id
+        users!user_id (
           username,
           avatar_url,
           avatar_shape
         )
       `)
-      .order('uploaded_at', { ascending: false });
-
+  .order('uploaded_at', { ascending: false });
     if (error) throw error;
 
     const formattedVideos = data.map(video => ({
