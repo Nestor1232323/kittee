@@ -38,8 +38,8 @@
       "destination": "/api/v1/kittee/videos/profile?g=updateprofile"
     },
     {
-      "source": "/",
-      "destination": "/kittee-videos/index.html"
+      "source": "/((?!api|k7video).*)",
+      "destination": "/kittee-videos/$1"
     }
   ]
 }
