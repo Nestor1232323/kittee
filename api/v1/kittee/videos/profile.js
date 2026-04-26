@@ -19,10 +19,36 @@ export default async function handler(req, res) {
     const decoded = jwt.verify(token, JWT_SECRET);
     const userId = decoded.userId;
     const { g } = req.query; // Извлекаем параметр g
+ if (g === 'getsub') {
+      // 1. Сначала находим все ID авторов, на которых подписан юзер
+      const { data: subs, error: subsErr } = await supabase
+        .from('subscriptions')
+        .select('author_id')
+        .eq('user_id', userId);
+
+      if (subsErr) throw subsErr;
+
+      if (!subs || subs.length === 0) {
+        return res.status(200).json([]); // Возвращаем пустой список, если подписок нет
+      }
+
+      const authorIds = subs.map(s => s.author_id);
+
+      // 2. Получаем данные этих авторов (имя, аватар и т.д.)
+      const { data: authors, error: authorsErr } = await supabase
+        .from('users')
+        .select('id, name, username, avatar_url, avatar_shape, description')
+        .in('id', authorIds);
+
+      if (authorsErr) throw authorsErr;
+
+      // 3. Можно также добавить количество видео для каждого автора (опционально)
+      // Для простоты пока вернем просто данные авторов
+      return res.status(200).json(authors);
+    }
 
     // --- ЛОГИКА: ПОЛУЧЕНИЕ ПРОФИЛЯ (?g=checkprofile) ---
-    if (g === 'checkprofile' || req.method === 'GET') {
-      
+    if (g === 'checkprofile' || !g) {      
       const { data: user, error: userErr } = await supabase
         .from('users')
         .select('id, name, username, avatar_url, avatar_shape, description, created_at')
@@ -74,34 +100,7 @@ export default async function handler(req, res) {
         history: finalHistory
       });
     }
-// --- ЛОГИКА: ПОЛУЧЕНИЕ ПОДПИСОК (?g=getsub) ---
-    if (g === 'getsub') {
-      // 1. Сначала находим все ID авторов, на которых подписан юзер
-      const { data: subs, error: subsErr } = await supabase
-        .from('subscriptions')
-        .select('author_id')
-        .eq('user_id', userId);
-
-      if (subsErr) throw subsErr;
-
-      if (!subs || subs.length === 0) {
-        return res.status(200).json([]); // Возвращаем пустой список, если подписок нет
-      }
-
-      const authorIds = subs.map(s => s.author_id);
-
-      // 2. Получаем данные этих авторов (имя, аватар и т.д.)
-      const { data: authors, error: authorsErr } = await supabase
-        .from('users')
-        .select('id, name, username, avatar_url, avatar_shape, description')
-        .in('id', authorIds);
-
-      if (authorsErr) throw authorsErr;
-
-      // 3. Можно также добавить количество видео для каждого автора (опционально)
-      // Для простоты пока вернем просто данные авторов
-      return res.status(200).json(authors);
-    }
+   
     // --- ЛОГИКА: ДОБАВЛЕНИЕ В ИСТОРИЮ (?g=addhistory) ---
     if (g === 'addhistory' || req.method === 'POST') {
       const { video_id } = req.body;
