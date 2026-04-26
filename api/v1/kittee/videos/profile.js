@@ -99,7 +99,7 @@ if (g === 'checkprofile' || !g) {
       
       const { data: authors } = await supabase
         .from('users')
-        .select('id, username, avatar_url, avatar_shape')
+        .select('id, username, name, avatar_url, avatar_shape')
         .in('id', authorIds);
 
       const authorMap = {};
@@ -127,6 +127,7 @@ if (g === 'checkprofile' || !g) {
             uploaded_at: videoData.uploaded_at || h.viewed_at,
             font: videoData.font,
             username: author.username || 'Unknown',
+            name: author.name,
             avatar_url: author.avatar_url,
             avatar_shape: author.avatar_shape
           }
