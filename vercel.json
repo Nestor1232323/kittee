@@ -6,7 +6,7 @@
     },
     {
       "source": "/api/v1/kittee/videos/history/add",
-      "destination": "/api/v1/kittee/videos/profile"
+      "destination": "/api/v1/kittee/videos/profile?g=addhistory"
     },
     {
       "source": "/api/v1/kittee/videos/profile/get-subscribers",
