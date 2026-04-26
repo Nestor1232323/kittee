@@ -76,7 +76,7 @@ export default async function handler(req, res) {
     }
 // --- ЛОГИКА: ПОЛУЧЕНИЕ ПОДПИСОК (?g=getsub) ---
     if (g === 'getsub') {
-      // 1. Получаем ID всех авторов, на которых подписан юзер
+      // 1. Сначала находим все ID авторов, на которых подписан юзер
       const { data: subs, error: subsErr } = await supabase
         .from('subscriptions')
         .select('author_id')
@@ -85,21 +85,21 @@ export default async function handler(req, res) {
       if (subsErr) throw subsErr;
 
       if (!subs || subs.length === 0) {
-        return res.status(200).json([]);
+        return res.status(200).json([]); // Возвращаем пустой список, если подписок нет
       }
 
       const authorIds = subs.map(s => s.author_id);
 
-      // 2. Получаем данные этих авторов
-      const { data: authors, error: authErr } = await supabase
+      // 2. Получаем данные этих авторов (имя, аватар и т.д.)
+      const { data: authors, error: authorsErr } = await supabase
         .from('users')
-        .select('id, name, username, avatar_url, avatar_shape')
+        .select('id, name, username, avatar_url, avatar_shape, description')
         .in('id', authorIds);
 
-      if (authErr) throw authErr;
+      if (authorsErr) throw authorsErr;
 
-      // 3. (Опционально) Можно подтянуть по одному последнему видео для каждого автора
-      // Но для простого списка каналов достаточно данных выше
+      // 3. Можно также добавить количество видео для каждого автора (опционально)
+      // Для простоты пока вернем просто данные авторов
       return res.status(200).json(authors);
     }
     // --- ЛОГИКА: ДОБАВЛЕНИЕ В ИСТОРИЮ (?g=addhistory) ---
