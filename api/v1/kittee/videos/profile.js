@@ -143,18 +143,45 @@ if (g === 'checkprofile' || !g) {
 }
    
     // --- ЛОГИКА: ДОБАВЛЕНИЕ В ИСТОРИЮ (?g=addhistory) ---
-    if (g === 'addhistory' || req.method === 'POST') {
-      const { video_id } = req.body;
-      if (!video_id) return res.status(400).json({ error: 'video_id обязателен' });
+if (g === 'addhistory' || req.method === 'POST') {
+  const { video_id } = req.body;
+  if (!video_id) return res.status(400).json({ error: 'video_id обязателен' });
 
-      const { error } = await supabase
-        .from('history')
-        .insert([{ user_id: userId, video_id: video_id }]);
+  // 1. Ищем последнюю запись об этом видео для этого пользователя
+  const { data: existingHistory, error: fetchError } = await supabase
+    .from('history')
+    .select('created_at')
+    .eq('user_id', userId)
+    .eq('video_id', video_id)
+    .order('created_at', { ascending: false })
+    .limit(1);
 
-      if (error) throw error;
-      return res.status(200).json({ success: true });
+  if (fetchError) throw fetchError;
+
+  // 2. Проверяем условие 30 минут
+  if (existingHistory && existingHistory.length > 0) {
+    const lastVisit = new Date(existingHistory[0].created_at);
+    const now = new Date();
+    const diffInMinutes = (now.getTime() - lastVisit.getTime()) / (1000 * 60);
+
+    if (diffInMinutes < 30) {
+      // Если прошло меньше 30 минут, просто возвращаем успех без вставки
+      return res.status(200).json({ 
+        success: true, 
+        message: 'Прошло меньше 30 минут, история не дублируется' 
+      });
     }
+  }
 
+  // 3. Если записей нет или прошло > 30 минут — вставляем новую
+  const { error: insertError } = await supabase
+    .from('history')
+    .insert([{ user_id: userId, video_id: video_id }]);
+
+  if (insertError) throw insertError;
+  
+  return res.status(200).json({ success: true });
+}
     return res.status(400).json({ error: 'Неверный параметр g или метод' });
 
   } catch (err) {
