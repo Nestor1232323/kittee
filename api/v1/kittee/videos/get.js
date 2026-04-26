@@ -31,6 +31,7 @@ export default async function handler(req, res) {
   try {
     // Выполняем запрос к таблице videos с присоединением данных юзера (Join)
     // В Supabase (PostgREST) это делается через выборку связанных полей
+   // Выполняем запрос, явно указывая связь через !user_id
     const { data, error } = await supabase
       .from('videos')
       .select(`
@@ -44,7 +45,7 @@ export default async function handler(req, res) {
         views, 
         font,
         uploaded_at,
-        users (
+        users!user_id (  // ДОБАВИЛИ !user_id
           username,
           avatar_url,
           avatar_shape
@@ -54,7 +55,6 @@ export default async function handler(req, res) {
 
     if (error) throw error;
 
-    // Форматируем данные, чтобы они соответствовали твоему старому PHP API
     const formattedVideos = data.map(video => ({
       id: video.id,
       user_id: video.user_id,
@@ -65,12 +65,12 @@ export default async function handler(req, res) {
       duration: video.duration,
       views: video.views,
       uploaded_at: video.uploaded_at,
+      // Тут оставляем обращение через users
       username: video.users?.username,
       avatar_url: video.users?.avatar_url,
       avatar_shape: video.users?.avatar_shape || 'circle',
       font: video.font,
     }));
-
     return res.status(200).json({
       status: true,
       videos: formattedVideos
