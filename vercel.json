@@ -13,6 +13,14 @@
       "destination": "/api/v1/kittee/videos/profile?g=getsub"
     },
     {
+      "source": "/api/v1/kittee/videos/search/get_suggest",
+      "destination": "/api/v1/kittee/videos/search/search?g=suggestions"
+    },
+    {
+      "source": "/api/v1/kittee/videos/search/get_search",
+      "destination": "/api/v1/kittee/videos/search/search?g=search"
+    },
+    {
       "source": "/api/v1/kittee/videos/profile/update-profile",
       "destination": "/api/v1/kittee/videos/profile?g=updateprofile"
     }
