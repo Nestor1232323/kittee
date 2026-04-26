@@ -18,12 +18,11 @@ export default async function handler(req, res) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const userId = decoded.userId;
-    const { g } = req.query;
+    const { g } = req.query; // Извлекаем параметр g
 
-    // --- ЛОГИКА: ПОЛУЧЕНИЕ ПРОФИЛЯ + ИСТОРИЯ (БЕЗ FOREIGN KEYS) ---
+    // --- ЛОГИКА: ПОЛУЧЕНИЕ ПРОФИЛЯ (?g=checkprofile) ---
     if (g === 'checkprofile' || req.method === 'GET') {
       
-      // 1. Берем данные юзера
       const { data: user, error: userErr } = await supabase
         .from('users')
         .select('id, name, username, avatar_url, avatar_shape, description, created_at')
@@ -32,7 +31,6 @@ export default async function handler(req, res) {
 
       if (userErr || !user) throw new Error('Юзер не найден');
 
-      // 2. Берем историю (просто плоский список)
       const { data: historyItems, error: histErr } = await supabase
         .from('history')
         .select('video_id, viewed_at')
@@ -40,35 +38,44 @@ export default async function handler(req, res) {
         .order('viewed_at', { ascending: false })
         .limit(15);
 
-      if (histErr) throw histErr;
-
-      // 3. Если история есть, вытягиваем данные по этим видео
       let finalHistory = [];
       if (historyItems && historyItems.length > 0) {
         const videoIds = historyItems.map(h => h.video_id);
         
         const { data: videos, error: vidErr } = await supabase
           .from('videos')
-          .select('id, title, thumbnail_url, duration, views, video_url')
+          .select('id, title, thumbnail_url, duration, views, video_url, uploaded_at, font')
           .in('id', videoIds);
 
         if (!vidErr) {
-          // Склеиваем дату просмотра с данными видео
-          finalHistory = historyItems.map(h => ({
-            viewed_at: h.viewed_at,
-            video: videos.find(v => v.id === h.video_id)
-          })).filter(h => h.video != null); // Убираем, если видео вдруг удалено
+          finalHistory = historyItems.map(h => {
+            const videoData = videos.find(v => v.id === h.video_id);
+            if (!videoData) return null;
+
+            // ХАК ДЛЯ FLUTTER: Добавляем данные автора прямо в объект видео,
+            // чтобы VideoCard не ругался на Null String
+            return {
+              viewed_at: h.viewed_at,
+              video: {
+                ...videoData,
+                username: user.username,
+                avatar_url: user.avatar_url,
+                avatar_shape: user.avatar_shape,
+                // Если у видео нет даты загрузки, используем дату просмотра
+                uploaded_at: videoData.uploaded_at || h.viewed_at 
+              }
+            };
+          }).filter(h => h !== null);
         }
       }
 
-      // Собираем всё в один объект, как ты хотел
       return res.status(200).json({
         ...user,
         history: finalHistory
       });
     }
 
-    // --- ЛОГИКА: ДОБАВЛЕНИЕ В ИСТОРИЮ ---
+    // --- ЛОГИКА: ДОБАВЛЕНИЕ В ИСТОРИЮ (?g=addhistory) ---
     if (g === 'addhistory' || req.method === 'POST') {
       const { video_id } = req.body;
       if (!video_id) return res.status(400).json({ error: 'video_id обязателен' });
@@ -80,6 +87,8 @@ export default async function handler(req, res) {
       if (error) throw error;
       return res.status(200).json({ success: true });
     }
+
+    return res.status(400).json({ error: 'Неверный параметр g или метод' });
 
   } catch (err) {
     console.error('Error:', err.message);
