@@ -18,23 +18,22 @@ export default async function handler(req, res) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     const userId = decoded.userId;
-    const { g } = req.query; // Извлекаем параметр g
- if (g === 'getsub') {
-      // 1. Сначала находим все ID авторов, на которых подписан юзер
+    const { g } = req.query; 
+    
+    if (g === 'getsub') {
       const { data: subs, error: subsErr } = await supabase
         .from('subscriptions')
-        .select('author_id')
-        .eq('user_id', userId);
+        .select('channel_id')
+        .eq('subscriber_id', userId); 
 
       if (subsErr) throw subsErr;
 
       if (!subs || subs.length === 0) {
-        return res.status(200).json([]); // Возвращаем пустой список, если подписок нет
+        return res.status(200).json([]);
       }
 
-      const authorIds = subs.map(s => s.author_id);
+      const authorIds = subs.map(s => s.channel_id);
 
-      // 2. Получаем данные этих авторов (имя, аватар и т.д.)
       const { data: authors, error: authorsErr } = await supabase
         .from('users')
         .select('id, name, username, avatar_url, avatar_shape, description')
@@ -42,12 +41,9 @@ export default async function handler(req, res) {
 
       if (authorsErr) throw authorsErr;
 
-      // 3. Можно также добавить количество видео для каждого автора (опционально)
-      // Для простоты пока вернем просто данные авторов
       return res.status(200).json(authors);
     }
 
-    // --- ЛОГИКА: ПОЛУЧЕНИЕ ПРОФИЛЯ (?g=checkprofile) ---
     if (g === 'checkprofile' || !g) {      
       const { data: user, error: userErr } = await supabase
         .from('users')
