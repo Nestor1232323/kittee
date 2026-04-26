@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       .from('comments')
       .select(`
         id, text, created_at,
-        users (username, avatar_url, avatar_shape)
+        users (username, name, avatar_url, avatar_shape)
       `)
       .eq('video_id', id)
       .order('created_at', { ascending: false });
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
         ])
         .select(`
           id, text, created_at,
-          users (username, avatar_url, avatar_shape)
+          users (username, name, avatar_url, avatar_shape)
         `)
         .single();
 
