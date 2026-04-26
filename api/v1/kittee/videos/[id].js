@@ -22,6 +22,7 @@ export default async function handler(req, res) {
           username,
           avatar_url,
           avatar_shape
+          name
         )
       `)
       .eq('id', id)
@@ -36,7 +37,8 @@ export default async function handler(req, res) {
       ...data,
       username: data.users?.username,
       avatar_url: data.users?.avatar_url,
-      avatar_shape: data.users?.avatar_shape || 'circle'
+      avatar_shape: data.users?.avatar_shape || 'circle',
+      name: data.users?.name,
     };
     delete formattedVideo.users; // Удаляем вложенный объект, чтобы структура была плоской
 

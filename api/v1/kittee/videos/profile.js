@@ -68,58 +68,78 @@ export default async function handler(req, res) {
       if (error) throw error;
       return res.status(200).json({ success: true, user: data });
     }
-    if (g === 'checkprofile' || !g) {      
-      const { data: user, error: userErr } = await supabase
+if (g === 'checkprofile' || !g) {      
+  const { data: user, error: userErr } = await supabase
+    .from('users')
+    .select('id, name, username, avatar_url, avatar_shape, description, created_at')
+    .eq('id', userId)
+    .single();
+
+  if (userErr || !user) throw new Error('Юзер не найден');
+
+  const { data: historyItems, error: histErr } = await supabase
+    .from('history')
+    .select('video_id, viewed_at')
+    .eq('user_id', userId)
+    .order('viewed_at', { ascending: false })
+    .limit(15);
+
+  let finalHistory = [];
+  if (historyItems && historyItems.length > 0) {
+    const videoIds = historyItems.map(h => h.video_id);
+    
+    const { data: videos, error: vidErr } = await supabase
+      .from('videos')
+      .select('id, title, thumbnail_url, duration, views, video_url, uploaded_at, font, user_id')
+      .in('id', videoIds);
+
+    if (!vidErr && videos) {
+      // Получаем ID авторов видео
+      const authorIds = [...new Set(videos.map(v => v.user_id))];
+      
+      const { data: authors } = await supabase
         .from('users')
-        .select('id, name, username, avatar_url, avatar_shape, description, created_at')
-        .eq('id', userId)
-        .single();
+        .select('id, username, avatar_url, avatar_shape')
+        .in('id', authorIds);
 
-      if (userErr || !user) throw new Error('Юзер не найден');
-
-      const { data: historyItems, error: histErr } = await supabase
-        .from('history')
-        .select('video_id, viewed_at')
-        .eq('user_id', userId)
-        .order('viewed_at', { ascending: false })
-        .limit(15);
-
-      let finalHistory = [];
-      if (historyItems && historyItems.length > 0) {
-        const videoIds = historyItems.map(h => h.video_id);
-        
-        const { data: videos, error: vidErr } = await supabase
-          .from('videos')
-          .select('id, title, thumbnail_url, duration, views, video_url, uploaded_at, font')
-          .in('id', videoIds);
-
-        if (!vidErr) {
-          finalHistory = historyItems.map(h => {
-            const videoData = videos.find(v => v.id === h.video_id);
-            if (!videoData) return null;
-
-            // ХАК ДЛЯ FLUTTER: Добавляем данные автора прямо в объект видео,
-            // чтобы VideoCard не ругался на Null String
-            return {
-              viewed_at: h.viewed_at,
-              video: {
-                ...videoData,
-                username: user.username,
-                avatar_url: user.avatar_url,
-                avatar_shape: user.avatar_shape,
-                // Если у видео нет даты загрузки, используем дату просмотра
-                uploaded_at: videoData.uploaded_at || h.viewed_at 
-              }
-            };
-          }).filter(h => h !== null);
-        }
+      const authorMap = {};
+      if (authors) {
+        authors.forEach(author => {
+          authorMap[author.id] = author;
+        });
       }
 
-      return res.status(200).json({
-        ...user,
-        history: finalHistory
-      });
+      finalHistory = historyItems.map(h => {
+        const videoData = videos.find(v => v.id === h.video_id);
+        if (!videoData) return null;
+
+        const author = authorMap[videoData.user_id] || {};
+
+        return {
+          viewed_at: h.viewed_at,
+          video: {
+            id: videoData.id,
+            title: videoData.title,
+            thumbnail_url: videoData.thumbnail_url,
+            duration: videoData.duration,
+            views: videoData.views,
+            video_url: videoData.video_url,
+            uploaded_at: videoData.uploaded_at || h.viewed_at,
+            font: videoData.font,
+            username: author.username || 'Unknown',
+            avatar_url: author.avatar_url,
+            avatar_shape: author.avatar_shape
+          }
+        };
+      }).filter(h => h !== null);
     }
+  }
+
+  return res.status(200).json({
+    ...user,
+    history: finalHistory
+  });
+}
    
     // --- ЛОГИКА: ДОБАВЛЕНИЕ В ИСТОРИЮ (?g=addhistory) ---
     if (g === 'addhistory' || req.method === 'POST') {

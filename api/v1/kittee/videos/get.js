@@ -49,6 +49,7 @@ export default async function handler(req, res) {
           username,
           avatar_url,
           avatar_shape
+          name
         )
       `)
   .order('uploaded_at', { ascending: false });
@@ -65,6 +66,7 @@ export default async function handler(req, res) {
       views: video.views,
       uploaded_at: video.uploaded_at,
       // Тут оставляем обращение через users
+      name: video.users?.name,
       username: video.users?.username,
       avatar_url: video.users?.avatar_url,
       avatar_shape: video.users?.avatar_shape || 'circle',
