@@ -42,6 +42,7 @@ export default async function handler(req, res) {
         thumbnail_url,
         duration, 
         views, 
+        font,
         uploaded_at,
         users (
           username,
@@ -66,7 +67,8 @@ export default async function handler(req, res) {
       uploaded_at: video.uploaded_at,
       username: video.users?.username,
       avatar_url: video.users?.avatar_url,
-      avatar_shape: video.users?.avatar_shape || 'circle'
+      avatar_shape: video.users?.avatar_shape || 'circle',
+      font: video.font,
     }));
 
     return res.status(200).json({
