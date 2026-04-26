@@ -19,31 +19,44 @@ export default async function handler(req, res) {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     
-    // Вытягиваем юзера + историю + данные видео внутри истории
+    // ВАЖНО: Используем !user_id и !video_id, чтобы явно указать ключи
     const { data: user, error } = await supabase
       .from('users')
       .select(`
-        id, name, username, avatar_url, avatar_shape, description, created_at,
-        history (
+        id, 
+        name, 
+        username, 
+        avatar_url, 
+        avatar_shape, 
+        description, 
+        created_at,
+        history!user_id (
           viewed_at,
           video:video_id (
             id,
             title,
             thumbnail_url,
             duration,
-            views
+            views,
+            video_url
           )
         )
       `)
       .eq('id', decoded.userId)
+      // Сортировка истории:
       .order('viewed_at', { foreignTable: 'history', ascending: false })
-      .limit(10, { foreignTable: 'history' }) // Последние 10 видосов
       .single();
 
-    if (error || !user) throw new Error('Пользователь не найден или ошибка БД');
+    if (error) {
+      console.error('Supabase Error:', error); // Это появится в логах Vercel
+      return res.status(500).json({ error: error.message });
+    }
+
+    if (!user) return res.status(404).json({ error: 'Юзер не найден' });
 
     return res.status(200).json(user);
   } catch (err) {
-    return res.status(401).json({ error: 'Сессия истекла или ошибка запроса' });
+    console.error('JWT/Auth Error:', err);
+    return res.status(401).json({ error: 'Сессия истекла или ошибка сервера' });
   }
 }
