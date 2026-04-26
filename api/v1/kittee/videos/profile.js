@@ -7,6 +7,8 @@ const JWT_SECRET = process.env.kittee_SUPABASE_JWT_SECRET;
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const authHeader = req.headers.authorization;
@@ -18,45 +20,47 @@ export default async function handler(req, res) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    
-    // ВАЖНО: Используем !user_id и !video_id, чтобы явно указать ключи
-    const { data: user, error } = await supabase
-      .from('users')
-      .select(`
-        id, 
-        name, 
-        username, 
-        avatar_url, 
-        avatar_shape, 
-        description, 
-        created_at,
-        history!user_id (
-          viewed_at,
-          video:video_id (
-            id,
-            title,
-            thumbnail_url,
-            duration,
-            views,
-            video_url
-          )
-        )
-      `)
-      .eq('id', decoded.userId)
-      // Сортировка истории:
-      .order('viewed_at', { foreignTable: 'history', ascending: false })
-      .single();
+    const userId = decoded.userId;
 
-    if (error) {
-      console.error('Supabase Error:', error); // Это появится в логах Vercel
-      return res.status(500).json({ error: error.message });
+    // --- ЛОГИКА GET: ПОЛУЧЕНИЕ ПРОФИЛЯ ---
+    if (req.method === 'GET') {
+      const { data: user, error } = await supabase
+        .from('users')
+        .select(`
+          id, name, username, avatar_url, avatar_shape, description, created_at,
+          history!user_id (
+            viewed_at,
+            video:video_id (
+              id, title, thumbnail_url, duration, views, video_url
+            )
+          )
+        `)
+        .eq('id', userId)
+        .order('viewed_at', { foreignTable: 'history', ascending: false })
+        .limit(15, { foreignTable: 'history' }) // Берем последние 15 записей
+        .single();
+
+      if (error) throw error;
+      return res.status(200).json(user);
     }
 
-    if (!user) return res.status(404).json({ error: 'Юзер не найден' });
+    // --- ЛОГИКА POST: ДОБАВЛЕНИЕ В ИСТОРИЮ ---
+    if (req.method === 'POST') {
+      const { video_id } = req.body;
+      if (!video_id) return res.status(400).json({ error: 'video_id обязателен' });
 
-    return res.status(200).json(user);
+      const { error } = await supabase
+        .from('history')
+        .insert([{ user_id: userId, video_id: video_id }]);
+
+      if (error) throw error;
+      return res.status(200).json({ success: true });
+    }
+
+    return res.status(405).json({ error: 'Метод не поддерживается' });
+
   } catch (err) {
-    console.error('JWT/Auth Error:', err);
-    return res.status(401).json({ error: 'Сессия истекла или ошибка сервера' });
+    console.error('Error:', err.message);
+    return res.status(401).json({ error: 'Ошибка авторизации или сервера' });
   }
 }
