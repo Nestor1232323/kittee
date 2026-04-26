@@ -42,10 +42,16 @@ export default async function handler(req, res) {
 
       if (authorErr || !author) return res.status(404).json({ error: 'Автор не найден' });
 
-      // Получаем видео автора
       const { data: videos, error: vidErr } = await supabase
         .from('videos')
-        .select('*')
+        .select(`
+          *,
+          author:users!user_id (
+            name,
+            username,
+            avatar_url
+          )
+        `) // Мы тянем все поля видео + объект автора
         .eq('user_id', author_id)
         .order('uploaded_at', { ascending: false });
 
