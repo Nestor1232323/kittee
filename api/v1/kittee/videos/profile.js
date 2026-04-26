@@ -74,7 +74,34 @@ export default async function handler(req, res) {
         history: finalHistory
       });
     }
+// --- ЛОГИКА: ПОЛУЧЕНИЕ ПОДПИСОК (?g=getsub) ---
+    if (g === 'getsub') {
+      // 1. Получаем ID всех авторов, на которых подписан юзер
+      const { data: subs, error: subsErr } = await supabase
+        .from('subscriptions')
+        .select('author_id')
+        .eq('user_id', userId);
 
+      if (subsErr) throw subsErr;
+
+      if (!subs || subs.length === 0) {
+        return res.status(200).json([]);
+      }
+
+      const authorIds = subs.map(s => s.author_id);
+
+      // 2. Получаем данные этих авторов
+      const { data: authors, error: authErr } = await supabase
+        .from('users')
+        .select('id, name, username, avatar_url, avatar_shape')
+        .in('id', authorIds);
+
+      if (authErr) throw authErr;
+
+      // 3. (Опционально) Можно подтянуть по одному последнему видео для каждого автора
+      // Но для простого списка каналов достаточно данных выше
+      return res.status(200).json(authors);
+    }
     // --- ЛОГИКА: ДОБАВЛЕНИЕ В ИСТОРИЮ (?g=addhistory) ---
     if (g === 'addhistory' || req.method === 'POST') {
       const { video_id } = req.body;
