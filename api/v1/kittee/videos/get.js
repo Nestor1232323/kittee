@@ -48,7 +48,7 @@ export default async function handler(req, res) {
         users!user_id (
           username,
           avatar_url,
-          avatar_shape
+          avatar_shape,
           name
         )
       `)
