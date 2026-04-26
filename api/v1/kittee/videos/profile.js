@@ -23,10 +23,9 @@ export default async function handler(req, res) {
     // Берем свежие данные из базы по id из токена
     const { data: user, error } = await supabase
       .from('users')
-      .select('id, name, username, email, avatar_url, avatar_shape, description, created_at')
+      .select('id, name, username, avatar_url, avatar_shape, description, created_at')
       .eq('id', decoded.userId)
       .single();
-
     if (error || !user) throw new Error('Пользователь не найден');
 
     return res.status(200).json(user);

@@ -8,22 +8,22 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { email, password, username, name } = req.body;
+  const { password, username, name } = req.body;
 
   try {
-    // 1. Хешируем пароль (соль 10 раундов)
-    const hashedPassword = await bcrypt.hash(password, 10);
+    if (!username || !password) return res.status(400).json({ error: 'Username и пароль обязательны' });
 
-    // 2. Сохраняем в базу
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const finalUsername = username.startsWith('@') ? username : `@${username}`;
+
     const { data, error } = await supabase
       .from('users')
       .insert([
         { 
-          email, 
           password: hashedPassword, 
-          username: username.startsWith('@') ? username : `@${username}`,
-          name,
-          avatar_shape: 'circle', // дефолт
+          username: finalUsername,
+          name: name || username, // Если имя не ввели, используем ник
+          avatar_shape: 'circle',
           created_at: new Date().toISOString()
         }
       ])
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
       .single();
 
     if (error) {
-      if (error.code === '23505') return res.status(400).json({ error: 'Email или Username уже заняты' });
+      if (error.code === '23505') return res.status(400).json({ error: 'Этот Username уже занят' });
       throw error;
     }
 
