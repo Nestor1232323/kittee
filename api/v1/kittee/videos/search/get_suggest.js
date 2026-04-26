@@ -10,21 +10,33 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    if (!q || q.length < 2) return res.status(200).json([]);
+    // 1. Убираем ограничение в 2 символа. Теперь работает даже от 1 буквы.
+    // Если пусто — отдаем пустой массив.
+    if (!q || q.trim().length === 0) {
+      return res.status(200).json([]);
+    }
 
+    const queryText = q.trim();
+
+    // 2. Делаем запрос к Supabase
     const { data, error } = await supabase
       .from('videos')
       .select('title')
-      .ilike('title', `%${q}%`) // Только по заголовку для подсказок
-      .limit(5);
+      // 'ilike' делает поиск регистронезависимым. 
+      // '%${queryText}%' найдет букву в середине, начале или конце.
+      .ilike('title', `%${queryText}%`) 
+      // Сортируем, чтобы сначала шли заголовки, которые НАЧИНАЮТСЯ с этой буквы
+      // (опционально, но так удобнее пользователю)
+      .limit(8); // Можно чуть увеличить лимит до 8 для красоты
 
     if (error) throw error;
 
-    // Превращаем [{title: '...'}] в ['...', '...']
-    const suggestions = data.map(v => v.title);
+    // 3. Фильтруем дубликаты (если вдруг есть видео с одинаковыми названиями)
+    const suggestions = [...new Set(data.map(v => v.title))];
 
     return res.status(200).json(suggestions);
   } catch (error) {
+    console.error('Search error:', error);
     return res.status(500).json({ error: error.message });
   }
 }
