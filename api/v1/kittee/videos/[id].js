@@ -1,12 +1,22 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(process.env.kittee_SUPABASE_URL, process.env.kittee_SUPABASE_SERVICE_ROLE_KEY);
+// 1. Проверяем инициализацию (не пустые ли ключи)
+const supabaseUrl = process.env.kittee_SUPABASE_URL;
+const supabaseKey = process.env.kittee_SUPABASE_SERVICE_ROLE_KEY;
+
+console.log("--- DEBUG START ---");
+console.log("Supabase URL present:", !!supabaseUrl);
+console.log("Supabase Key present:", !!supabaseKey);
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function handler(req, res) {
-  const { id } = req.query; // Получаем ID из названия файла [id].js
+  const { id } = req.query; 
 
-  // Настройка CORS
-  res.setHeader('Access-Control-Allow-Origin', '*'); // Для теста можно оставить *, или прописать домены
+  console.log("Request ID from query:", id);
+  console.log("Request Method:", req.method);
+
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -14,7 +24,10 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { data, error } = await supabase
+    // 2. Логируем сам запрос перед отправкой
+    console.log(`Fetching video with id: ${id}...`);
+
+    const { data, error, status, statusText } = await supabase
       .from('videos')
       .select(`
         *,
@@ -29,11 +42,24 @@ export default async function handler(req, res) {
       .eq('id', id)
       .single();
 
-    if (error || !data) {
-      return res.status(404).json({ error: "Video not found" });
+    // 3. Смотрим, что ответил Supabase
+    if (error) {
+      console.error("Supabase Error Object:", JSON.stringify(error, null, 2));
+      console.error("HTTP Status:", status, statusText);
+      return res.status(status || 500).json({ 
+        error: "Supabase error", 
+        details: error.message,
+        hint: error.hint 
+      });
     }
 
-    // Форматируем ответ под старый PHP стиль
+    if (!data) {
+      console.warn("No data returned for ID:", id);
+      return res.status(404).json({ error: "Video not found in DB" });
+    }
+
+    console.log("Data successfully fetched for:", data.id);
+
     const formattedVideo = {
       ...data,
       username: data.users?.username,
@@ -42,11 +68,13 @@ export default async function handler(req, res) {
       name: data.users?.name,
       verified: data.users?.verified,
     };
-    delete formattedVideo.users; // Удаляем вложенный объект, чтобы структура была плоской
+    delete formattedVideo.users;
 
+    console.log("--- DEBUG END ---");
     return res.status(200).json(formattedVideo);
 
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+  } catch (err) {
+    console.error("Global Catch Error:", err);
+    return res.status(500).json({ error: err.message, stack: err.stack });
   }
 }
