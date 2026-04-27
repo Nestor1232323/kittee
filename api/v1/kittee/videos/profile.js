@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 
 const supabase = createClient(process.env.kittee_SUPABASE_URL, process.env.kittee_SUPABASE_SERVICE_ROLE_KEY);
 const JWT_SECRET = process.env.kittee_SUPABASE_JWT_SECRET;
