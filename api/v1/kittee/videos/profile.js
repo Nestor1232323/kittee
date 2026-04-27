@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     }
     if (g === 'updateprofile') {
       // Извлекаем avatar_url и avatar_shape из тела запроса
-      const { avatar_url, avatar_shape, name, description } = req.body;
+      const { avatar_url, avatar_shape, name, verified, description } = req.body;
       
       // Формируем объект для обновления (только те поля, которые переданы)
       const updateData = {};
