@@ -138,7 +138,7 @@ export default async function handler(req, res) {
           
           const { data: authors } = await supabase
             .from('users')
-            .select('id, username, name, avatar_url, avatar_shape')
+            .select('id, username, name, verified, avatar_url, avatar_shape')
             .in('id', authorIds);
 
           const authorMap = {};
@@ -168,7 +168,8 @@ export default async function handler(req, res) {
                 username: author.username || 'Unknown',
                 name: author.name,
                 avatar_url: author.avatar_url,
-                avatar_shape: author.avatar_shape
+                avatar_shape: author.avatar_shape,
+                verified: author.verified
               }
             };
           }).filter(h => h !== null);
