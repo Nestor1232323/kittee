@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       const { data: author, error: authorErr } = await supabase
         .from('users')
         .select(`
-          id, name, username, avatar_url, avatar_shape, description,
+          id, name, username, verified, avatar_url, avatar_shape, description,
           subscribers:subscriptions!channel_id(count)
         `)
         .eq('id', author_id)
