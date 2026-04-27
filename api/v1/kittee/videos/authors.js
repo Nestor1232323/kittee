@@ -49,6 +49,7 @@ export default async function handler(req, res) {
           author:users!user_id (
             name,
             username,
+            verified,
             avatar_url
           )
         `) // Мы тянем все поля видео + объект автора
@@ -78,7 +79,8 @@ export default async function handler(req, res) {
           ...author,
           subscriber_count: author.subscribers[0]?.count || 0,
           video_count: videoCount || 0,
-          is_subscribed: isSubscribed
+          is_subscribed: isSubscribed,
+          verified: author.verified
         },
         videos: videos || []
       });
