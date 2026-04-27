@@ -30,6 +30,10 @@
       "destination": "/api/v1/kittee/videos/search/search?g=suggestions"
     },
     {
+      "source": "/api/v1/kittee/videos/profile/reset-password",
+      "destination": "/api/v1/kittee/videos/profile?g=resetpassword"
+    },
+    {
       "source": "/api/v1/kittee/videos/search/get_search",
       "destination": "/api/v1/kittee/videos/search/search?g=search"
     },

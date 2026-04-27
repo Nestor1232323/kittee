@@ -68,120 +68,157 @@ export default async function handler(req, res) {
       if (error) throw error;
       return res.status(200).json({ success: true, user: data });
     }
-if (g === 'checkprofile' || !g) {      
-  const { data: user, error: userErr } = await supabase
-    .from('users')
-    .select('id, name, username, avatar_url, avatar_shape, description, created_at')
-    .eq('id', userId)
-    .single();
 
-  if (userErr || !user) throw new Error('Юзер не найден');
-
-  const { data: historyItems, error: histErr } = await supabase
-    .from('history')
-    .select('video_id, viewed_at')
-    .eq('user_id', userId)
-    .order('viewed_at', { ascending: false })
-    .limit(15);
-
-  let finalHistory = [];
-  if (historyItems && historyItems.length > 0) {
-    const videoIds = historyItems.map(h => h.video_id);
-    
-    const { data: videos, error: vidErr } = await supabase
-      .from('videos')
-      .select('id, title, thumbnail_url, duration, views, video_url, uploaded_at, font, user_id')
-      .in('id', videoIds);
-
-    if (!vidErr && videos) {
-      // Получаем ID авторов видео
-      const authorIds = [...new Set(videos.map(v => v.user_id))];
+    if (g === 'resetpassword') {
+      const { oldPassword, newPassword } = req.body;
       
-      const { data: authors } = await supabase
-        .from('users')
-        .select('id, username, name, avatar_url, avatar_shape')
-        .in('id', authorIds);
-
-      const authorMap = {};
-      if (authors) {
-        authors.forEach(author => {
-          authorMap[author.id] = author;
-        });
+      if (!oldPassword || !newPassword) {
+        return res.status(400).json({ error: 'Старый и новый пароль обязательны' });
+      }
+      
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'Новый пароль должен быть минимум 6 символов' });
       }
 
-      finalHistory = historyItems.map(h => {
-        const videoData = videos.find(v => v.id === h.video_id);
-        if (!videoData) return null;
+      // Получаем текущего пользователя с паролем
+      const { data: user, error: fetchError } = await supabase
+        .from('users')
+        .select('password')
+        .eq('id', userId)
+        .single();
+      
+      if (fetchError || !user) throw new Error('Пользователь не найден');
 
-        const author = authorMap[videoData.user_id] || {};
+      // Проверяем старый пароль
+      const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: 'Неверный старый пароль' });
+      }
 
-        return {
-          viewed_at: h.viewed_at,
-          video: {
-            id: videoData.id,
-            title: videoData.title,
-            thumbnail_url: videoData.thumbnail_url,
-            duration: videoData.duration,
-            views: videoData.views,
-            video_url: videoData.video_url,
-            uploaded_at: videoData.uploaded_at || h.viewed_at,
-            font: videoData.font,
-            username: author.username || 'Unknown',
-            name: author.name,
-            avatar_url: author.avatar_url,
-            avatar_shape: author.avatar_shape
-          }
-        };
-      }).filter(h => h !== null);
+      // Хешируем и обновляем новый пароль
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ password: hashedNewPassword })
+        .eq('id', userId);
+
+      if (updateError) throw updateError;
+      
+      return res.status(200).json({ success: true, message: 'Пароль успешно изменён' });
     }
-  }
+    if (g === 'checkprofile' || !g) {      
+      const { data: user, error: userErr } = await supabase
+        .from('users')
+        .select('id, name, username, avatar_url, avatar_shape, description, created_at')
+        .eq('id', userId)
+        .single();
 
-  return res.status(200).json({
-    ...user,
-    history: finalHistory
-  });
-}
-   
-    // --- ЛОГИКА: ДОБАВЛЕНИЕ В ИСТОРИЮ (?g=addhistory) ---
-if (g === 'addhistory' || req.method === 'POST') {
-  const { video_id } = req.body;
-  if (!video_id) return res.status(400).json({ error: 'video_id обязателен' });
+      if (userErr || !user) throw new Error('Юзер не найден');
 
-  // 1. Ищем последнюю запись об этом видео для этого пользователя
-  const { data: existingHistory, error: fetchError } = await supabase
-    .from('history')
-    .select('created_at')
-    .eq('user_id', userId)
-    .eq('video_id', video_id)
-    .order('created_at', { ascending: false })
-    .limit(1);
+      const { data: historyItems, error: histErr } = await supabase
+        .from('history')
+        .select('video_id, viewed_at')
+        .eq('user_id', userId)
+        .order('viewed_at', { ascending: false })
+        .limit(15);
 
-  if (fetchError) throw fetchError;
+      let finalHistory = [];
+      if (historyItems && historyItems.length > 0) {
+        const videoIds = historyItems.map(h => h.video_id);
+        
+        const { data: videos, error: vidErr } = await supabase
+          .from('videos')
+          .select('id, title, thumbnail_url, duration, views, video_url, uploaded_at, font, user_id')
+          .in('id', videoIds);
 
-  // 2. Проверяем условие 30 минут
-  if (existingHistory && existingHistory.length > 0) {
-    const lastVisit = new Date(existingHistory[0].created_at);
-    const now = new Date();
-    const diffInMinutes = (now.getTime() - lastVisit.getTime()) / (1000 * 60);
+        if (!vidErr && videos) {
+          // Получаем ID авторов видео
+          const authorIds = [...new Set(videos.map(v => v.user_id))];
+          
+          const { data: authors } = await supabase
+            .from('users')
+            .select('id, username, name, avatar_url, avatar_shape')
+            .in('id', authorIds);
 
-    if (diffInMinutes < 30) {
-      // Если прошло меньше 30 минут, просто возвращаем успех без вставки
-      return res.status(200).json({ 
-        success: true, 
-        message: 'Прошло меньше 30 минут, история не дублируется' 
+          const authorMap = {};
+          if (authors) {
+            authors.forEach(author => {
+              authorMap[author.id] = author;
+            });
+          }
+
+          finalHistory = historyItems.map(h => {
+            const videoData = videos.find(v => v.id === h.video_id);
+            if (!videoData) return null;
+
+            const author = authorMap[videoData.user_id] || {};
+
+            return {
+              viewed_at: h.viewed_at,
+              video: {
+                id: videoData.id,
+                title: videoData.title,
+                thumbnail_url: videoData.thumbnail_url,
+                duration: videoData.duration,
+                views: videoData.views,
+                video_url: videoData.video_url,
+                uploaded_at: videoData.uploaded_at || h.viewed_at,
+                font: videoData.font,
+                username: author.username || 'Unknown',
+                name: author.name,
+                avatar_url: author.avatar_url,
+                avatar_shape: author.avatar_shape
+              }
+            };
+          }).filter(h => h !== null);
+        }
+      }
+
+      return res.status(200).json({
+        ...user,
+        history: finalHistory
       });
     }
-  }
+      
+    if (g === 'addhistory' || req.method === 'POST') {
+      const { video_id } = req.body;
+      if (!video_id) return res.status(400).json({ error: 'video_id обязателен' });
 
-  // 3. Если записей нет или прошло > 30 минут — вставляем новую
-  const { error: insertError } = await supabase
-    .from('history')
-    .insert([{ user_id: userId, video_id: video_id }]);
+      // 1. Ищем последнюю запись об этом видео для этого пользователя
+      const { data: existingHistory, error: fetchError } = await supabase
+        .from('history')
+        .select('created_at')
+        .eq('user_id', userId)
+        .eq('video_id', video_id)
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-  if (insertError) throw insertError;
-  
-  return res.status(200).json({ success: true });
-}
+      if (fetchError) throw fetchError;
+
+      // 2. Проверяем условие 30 минут
+      if (existingHistory && existingHistory.length > 0) {
+        const lastVisit = new Date(existingHistory[0].created_at);
+        const now = new Date();
+        const diffInMinutes = (now.getTime() - lastVisit.getTime()) / (1000 * 60);
+
+        if (diffInMinutes < 30) {
+          // Если прошло меньше 30 минут, просто возвращаем успех без вставки
+          return res.status(200).json({ 
+            success: true, 
+            message: 'Прошло меньше 30 минут, история не дублируется' 
+          });
+        }
+      }
+
+      // 3. Если записей нет или прошло > 30 минут — вставляем новую
+      const { error: insertError } = await supabase
+        .from('history')
+        .insert([{ user_id: userId, video_id: video_id }]);
+
+      if (insertError) throw insertError;
+      
+      return res.status(200).json({ success: true });
+    }
     return res.status(400).json({ error: 'Неверный параметр g или метод' });
 
   } catch (err) {
