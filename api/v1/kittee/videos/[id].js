@@ -23,7 +23,7 @@ export default async function handler(req, res) {
           avatar_url,
           avatar_shape,
           name,
-          verified,
+          verified
         )
       `)
       .eq('id', id)
