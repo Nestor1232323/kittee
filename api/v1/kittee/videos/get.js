@@ -69,6 +69,7 @@ export default async function handler(req, res) {
       // Тут оставляем обращение через users
       name: video.users?.name,
       username: video.users?.username,
+      verified: video.users?.verified,
       avatar_url: video.users?.avatar_url,
       avatar_shape: video.users?.avatar_shape || 'circle',
       font: video.font,
