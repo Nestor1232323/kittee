@@ -22,7 +22,8 @@ export default async function handler(req, res) {
           username,
           avatar_url,
           avatar_shape,
-          name
+          name,
+          verified
         )
       `)
       .eq('id', id)
