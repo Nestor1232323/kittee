@@ -8,7 +8,7 @@
           "value": "k7video.vercel.app"
         }
       ],
-      "destination": "https://kittee-videos.vercel.app/$1",
+      "destination": "kittee-videos.vercel.app/$1",
       "permanent": true
     }
   ],
@@ -42,8 +42,8 @@
       "destination": "/api/v1/kittee/videos/profile?g=updateprofile"
     },
     {
-      "source": "/((?!api|k7video).*)",
-      "destination": "/kittee-videos/$1"
+      "source": "/",
+      "destination": "/kittee-videos/"
     }
   ]
 }

@@ -16,7 +16,7 @@ export default function handler(request, response) {
 
   const data = {
     "status": "ok",
-    "url": "cjaf579h46j2.shares.zrok.io"
+    "url": "6sjn6jdamwbl.shares.zrok.io"
   };
 
   return response.status(200).json(data);
