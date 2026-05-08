@@ -1,17 +1,4 @@
 {
-  "redirects": [
-    {
-      "source": "/(.*)",
-      "has": [
-        {
-          "type": "host",
-          "value": "k7video.vercel.app"
-        }
-      ],
-      "destination": "kittee-videos.vercel.app/$1",
-      "permanent": true
-    }
-  ],
   "rewrites": [
     {
       "source": "/api/v1/kittee/videos/profile",
@@ -46,8 +33,8 @@
       "destination": "/kittee-videos/"
     },
     {
-      "source": "/(.*)",
-      "destination": "/kittee-videos/$1"
+      "source": "/:path((?!api/).*)",
+      "destination": "/kittee-videos/:path"
     }
   ]
 }
