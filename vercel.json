@@ -44,6 +44,10 @@
     {
       "source": "/",
       "destination": "/kittee-videos/"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/kittee-videos/$1"
     }
   ]
 }
