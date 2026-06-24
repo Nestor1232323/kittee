@@ -2,39 +2,58 @@
   "rewrites": [
     {
       "source": "/api/v1/kittee/videos/profile",
+      "has": [{ "type": "host", "value": "kittee-videos.vercel.app" }],
       "destination": "/api/v1/kittee/videos/profile"
     },
     {
       "source": "/api/v1/kittee/videos/history/add",
+      "has": [{ "type": "host", "value": "kittee-videos.vercel.app" }],
       "destination": "/api/v1/kittee/videos/profile?g=addhistory"
     },
     {
       "source": "/api/v1/kittee/videos/profile/get-subscribers",
+      "has": [{ "type": "host", "value": "kittee-videos.vercel.app" }],
       "destination": "/api/v1/kittee/videos/profile?g=getsub"
     },
     {
       "source": "/api/v1/kittee/videos/search/get_suggest",
+      "has": [{ "type": "host", "value": "kittee-videos.vercel.app" }],
       "destination": "/api/v1/kittee/videos/search/search?g=suggestions"
     },
     {
       "source": "/api/v1/kittee/videos/profile/reset-password",
+      "has": [{ "type": "host", "value": "kittee-videos.vercel.app" }],
       "destination": "/api/v1/kittee/videos/profile?g=resetpassword"
     },
     {
       "source": "/api/v1/kittee/videos/search/get_search",
+      "has": [{ "type": "host", "value": "kittee-videos.vercel.app" }],
       "destination": "/api/v1/kittee/videos/search/search?g=search"
     },
     {
       "source": "/api/v1/kittee/videos/profile/update-profile",
+      "has": [{ "type": "host", "value": "kittee-videos.vercel.app" }],
       "destination": "/api/v1/kittee/videos/profile?g=updateprofile"
     },
     {
       "source": "/",
+      "has": [{ "type": "host", "value": "kittee-videos.vercel.app" }],
       "destination": "/kittee-videos/"
     },
     {
       "source": "/:path((?!api/).*)",
+      "has": [{ "type": "host", "value": "kittee-videos.vercel.app" }],
       "destination": "/kittee-videos/:path"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "kittee-talk.vercel.app" }],
+      "destination": "/kittee-talk/"
+    },
+    {
+      "source": "/:path((?!api/).*)",
+      "has": [{ "type": "host", "value": "kittee-talk.vercel.app" }],
+      "destination": "/kittee-talk/:path"
     }
   ]
 }
