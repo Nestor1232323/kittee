@@ -35,6 +35,16 @@
       "has": [{ "type": "host", "value": "kittee-videos.vercel.app" }],
       "destination": "/api/v1/kittee/videos/profile?g=updateprofile"
     },
+        {
+      "source": "/api/v1/kittee/videos/auth/login",
+      "has": [{ "type": "host", "value": "kittee-videos.vercel.app" }],
+      "destination": "/api/v1/kittee/videos/auth/auth?action=login"
+    },
+    {
+      "source": "/api/v1/kittee/videos/auth/register",
+      "has": [{ "type": "host", "value": "kittee-videos.vercel.app" }],
+      "destination": "/api/v1/kittee/videos/auth/auth?action=register"
+    },
     {
       "source": "/",
       "has": [{ "type": "host", "value": "kittee-videos.vercel.app" }],
