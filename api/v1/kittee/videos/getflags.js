@@ -5,20 +5,31 @@ export default async function handler(req, res) {
   
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // Vercel передает активные флаги в этом заголовке
-  const vercelFlagsHeader = req.headers['x-vercel-flags'];
+  const flags = {};
 
-  if (vercelFlagsHeader) {
-    try {
-      // Декодируем строку флагов (Vercel кодирует их в base64 или URL-string)
-      const decodedFlags = JSON.parse(Buffer.from(vercelFlagsHeader, 'base64').toString());
-      return res.status(200).json(decodedFlags);
-    } catch (e) {
-      // Если это была обычная строка, а не base64 JSON
-      return res.status(200).json(vercelFlagsHeader);
+  // Перебираем все переменные из панели Vercel
+  for (const key in process.env) {
+    // Пропускаем системные служебные токены, чтобы не светить их
+    if (
+      key.includes('SECRET') || 
+      key.includes('TOKEN') || 
+      key.includes('KEY') || 
+      key.includes('URL') ||
+      key.startsWith('VERCEL_') && !key.includes('FLAG')
+    ) {
+      continue;
     }
+
+    // Записываем значение (приводим строки 'true'/'false' к реальному boolean)
+    let value = process.env[key];
+    if (value === 'true') value = true;
+    if (value === 'false') value = false;
+
+    flags[key] = value;
   }
 
-  // Если заголовка нет, значит флагов сейчас нет
-  return res.status(200).json("none");
+  // Если нашли флаги — отдаем объект, если пусто — строку "none"
+  const responseData = Object.keys(flags).length > 0 ? flags : "none";
+
+  return res.status(200).json(responseData);
 }
