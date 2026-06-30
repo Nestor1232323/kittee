@@ -6,6 +6,6 @@
     "@supabase/supabase-js": "^2.39.0",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
-    "flags/next":  "^4.1.1"
+    "@flags/next":  "^4.1.1"
   }
 }
