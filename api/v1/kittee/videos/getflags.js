@@ -1,8 +1,19 @@
-// Было: import { getOverrides } from 'flags/next';
-import { getOverrides } from 'flags';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.kittee_SUPABASE_JWT_SECRET;
+
+// Хелпер для парсинга кук
+function parseCookies(req) {
+  const list = {};
+  const rc = req.headers.cookie;
+  if (!rc) return list;
+
+  rc.split(';').forEach(cookie => {
+    const parts = cookie.split('=');
+    list[parts.shift().trim()] = decodeURIComponent(parts.join('='));
+  });
+  return list;
+}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -18,24 +29,30 @@ export default async function handler(req, res) {
   try {
     jwt.verify(token, JWT_SECRET);
 
-    // Забираем актуальные переопределения напрямую из Vercel
-    const overrides = await getOverrides();
+    let finalFlags = 'none';
 
-    // Если флага нет в Vercel, присваиваем значение 'none'
-    const newhomeFlag = overrides?.['client.windows.newhome'] !== undefined 
-      ? overrides['client.windows.newhome'] 
-      : 'none';
+    const cookies = parseCookies(req);
+    const vercelToolbarOverrides = cookies['__vercel_toolbar_overrides'];
 
-    return res.status(200).json({
-      client: {
-        windows: {
-          newhome: newhomeFlag
+    if (vercelToolbarOverrides) {
+      try {
+        // Парсим вообще все флаги, которые сейчас активны в Vercel
+        const parsedFlags = JSON.parse(decodeURIComponent(vercelToolbarOverrides));
+        
+        // Если объект не пустой, записываем его в ответ
+        if (parsedFlags && Object.keys(parsedFlags).length > 0) {
+          finalFlags = parsedFlags;
         }
+      } catch (e) {
+        console.error('Ошибка парсинга флагов Vercel:', e.message);
       }
-    });
+    }
+
+    // Возвращаем JSON со всеми найденными флагами или "none"
+    return res.status(200).json(finalFlags);
 
   } catch (err) {
-    console.error('Error getting Vercel flags:', err.message);
+    console.error('Error getting flags:', err.message);
     return res.status(401).json({ error: 'Неверный токен' });
   }
 }
