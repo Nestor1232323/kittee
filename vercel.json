@@ -75,5 +75,12 @@
       "has": [{ "type": "host", "value": "k7ska.vercel.app" }],
       "destination": "/k7ska/:path"
     }
+    // --- ПРАВИЛО ТОЛЬКО ДЛЯ ДОМЕНА K7SKA ---
+    {
+      "source": "/articleview/(.*)",
+      "has": [{ "type": "host", "value": "k7ska.vercel.app" }],
+      "destination": "/k7ska/articleview.js"
+    },
+    // ----------------------------------------
   ]
 }
