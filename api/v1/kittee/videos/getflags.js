@@ -1,5 +1,5 @@
 // Было: import { getOverrides } from 'flags/next';
-import { getOverrides } from '@flags/next';
+import { getOverrides } from 'flags';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.kittee_SUPABASE_JWT_SECRET;
