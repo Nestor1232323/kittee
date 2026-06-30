@@ -1,6 +1,21 @@
 // getflags.js
-import { parseCookie } from 'cookie';
-import { decryptOverrides, safeJsonStringify } from 'flags';
+import { decryptOverrides } from 'flags';
+
+// 🍪 Простой парсер куки (заменяет библиотеку cookie)
+function parseCookies(cookieHeader) {
+  const cookies = {};
+  if (!cookieHeader) return cookies;
+  
+  cookieHeader.split(';').forEach(cookie => {
+    const [name, ...valueParts] = cookie.trim().split('=');
+    if (name) {
+      // join на случай если в значении был символ "="
+      cookies[name] = valueParts.join('=');
+    }
+  });
+  
+  return cookies;
+}
 
 export default async function handler(req, res) {
   // CORS заголовки
@@ -11,8 +26,8 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  // 1. Парсим куки
-  const cookies = parseCookie(req.headers.cookie || '');
+  // 1. Парсим куки своей функцией
+  const cookies = parseCookies(req.headers.cookie || '');
   const overridesCookie = cookies['vercel-flag-overrides'];
 
   // 2. Если куки нет — возвращаем понятный ответ
@@ -25,36 +40,34 @@ export default async function handler(req, res) {
   }
 
   let flagsData = null;
-  let errorDetails = null;
 
   // 3. Пытаемся расшифровать (encrypted mode — рекомендуется)
   try {
     flagsData = await decryptOverrides(overridesCookie);
   } catch (decryptError) {
-    errorDetails = { decryptError: decryptError.message };
-    
-    // 4. Fallback: пробуем распарсить как plaintext (если overrideEncryptionMode: 'plaintext')
+    // 4. Fallback: пробуем распарсить как plaintext
     try {
       const decoded = decodeURIComponent(overridesCookie);
       flagsData = JSON.parse(decoded);
     } catch (parseError) {
-      // 5. Если оба способа не сработали — логируем и возвращаем ошибку
       console.error('❌ Failed to parse Vercel flags cookie:', {
         cookiePreview: overridesCookie.substring(0, 100) + '...',
-        decryptError: errorDetails.decryptError,
+        decryptError: decryptError.message,
         parseError: parseError.message
       });
       
       return res.status(200).json({ 
         status: 'error',
         message: 'Could not decrypt or parse flags cookie',
-        error: process.env.NODE_ENV === 'development' ? { decryptError: errorDetails.decryptError, parseError: parseError.message } : undefined,
+        error: process.env.NODE_ENV === 'development' 
+          ? { decryptError: decryptError.message, parseError: parseError.message } 
+          : undefined,
         flags: {}
       });
     }
   }
 
-  // 6. Валидация: флаги должны быть объектом
+  // 5. Валидация: флаги должны быть объектом (не массивом)
   if (!flagsData || typeof flagsData !== 'object' || Array.isArray(flagsData)) {
     return res.status(200).json({
       status: 'invalid',
@@ -63,7 +76,7 @@ export default async function handler(req, res) {
     });
   }
 
-  // 7. Успех: возвращаем флаги + метаданные
+  // 6. Успех: возвращаем флаги + метаданные
   return res.status(200).json({
     status: 'ok',
     flags: flagsData,
