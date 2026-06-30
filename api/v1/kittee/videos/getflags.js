@@ -1,8 +1,4 @@
-import jwt from 'jsonwebtoken';
-
-const JWT_SECRET = process.env.kittee_SUPABASE_JWT_SECRET;
-
-// Хелпер для парсинга кук
+// Хелпер для парсинга кук из входящего запроса
 function parseCookies(req) {
   const list = {};
   const rc = req.headers.cookie;
@@ -16,43 +12,47 @@ function parseCookies(req) {
 }
 
 export default async function handler(req, res) {
+  // Настройка CORS флагов для работы с фронтендом kittee-videos.vercel.app и Vercel Toolbar
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   
-  if (req.method === 'OPTIONS') return res.status(200).end();
+  // Быстрый ответ на preflight-запросы
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'Не авторизован' });
-  const token = authHeader.split(' ')[1];
+  let flags = 'none';
 
-  try {
-    jwt.verify(token, JWT_SECRET);
+  // 1. Извлекаем переопределения из куки Vercel Toolbar
+  const cookies = parseCookies(req);
+  const toolbarOverrides = cookies['__vercel_toolbar_overrides'];
 
-    let finalFlags = 'none';
+  if (toolbarOverrides) {
+    try {
+      const parsed = JSON.parse(decodeURIComponent(toolbarOverrides));
+      // Если объект содержит флаги, записываем их
+      if (parsed && Object.keys(parsed).length > 0) {
+        flags = parsed;
+      }
+    } catch (e) {
+      console.error('Ошибка чтения куки флагов Vercel:', e.message);
+    }
+  }
 
-    const cookies = parseCookies(req);
-    const vercelToolbarOverrides = cookies['__vercel_toolbar_overrides'];
-
-    if (vercelToolbarOverrides) {
+  // 2. Если в куках пусто, проверяем системный bypass-токен/заголовок Vercel
+  if (flags === 'none') {
+    const bypassHeader = req.headers['x-vercel-protection-bypass'] || req.headers['x-vercel-set-bypass-cookie'];
+    if (bypassHeader && bypassHeader !== '1') {
       try {
-        // Парсим вообще все флаги, которые сейчас активны в Vercel
-        const parsedFlags = JSON.parse(decodeURIComponent(vercelToolbarOverrides));
-        
-        // Если объект не пустой, записываем его в ответ
-        if (parsedFlags && Object.keys(parsedFlags).length > 0) {
-          finalFlags = parsedFlags;
-        }
+        // Если Vercel передал зашитую строку конфигурации, отдаем её
+        flags = bypassHeader;
       } catch (e) {
-        console.error('Ошибка парсинга флагов Vercel:', e.message);
+        // Фоллбек на случай нечитаемого заголовка
       }
     }
-
-    // Возвращаем JSON со всеми найденными флагами или "none"
-    return res.status(200).json(finalFlags);
-
-  } catch (err) {
-    console.error('Error getting flags:', err.message);
-    return res.status(401).json({ error: 'Неверный токен' });
   }
+
+  // Возвращаем итоговый JSON со всеми флагами Vercel (или строку "none")
+  return res.status(200).json(flags);
 }
