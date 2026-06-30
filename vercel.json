@@ -6,6 +6,11 @@
       "destination": "/api/v1/kittee/videos/profile"
     },
     {
+      "source": "/api/v1/kittee/videos/getflags",
+      "has": [{ "type": "host", "value": "kittee-videos.vercel.app" }],
+      "destination": "/api/v1/kittee/videos/getflags"
+    },
+    {
       "source": "/api/v1/kittee/videos/history/add",
       "has": [{ "type": "host", "value": "kittee-videos.vercel.app" }],
       "destination": "/api/v1/kittee/videos/profile?g=addhistory"
