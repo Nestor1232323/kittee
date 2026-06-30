@@ -5,17 +5,20 @@ export default async function handler(req, res) {
   
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const flags = {};
+  // Vercel передает активные флаги в этом заголовке
+  const vercelFlagsHeader = req.headers['x-vercel-flags'];
 
-  // Собираем вообще все флаги из системного окружения Vercel
-  for (const key in process.env) {
-    if (key.startsWith('FLAGS_') || key.startsWith('VERCEL_FLAGS')) {
-      flags[key] = process.env[key];
+  if (vercelFlagsHeader) {
+    try {
+      // Декодируем строку флагов (Vercel кодирует их в base64 или URL-string)
+      const decodedFlags = JSON.parse(Buffer.from(vercelFlagsHeader, 'base64').toString());
+      return res.status(200).json(decodedFlags);
+    } catch (e) {
+      // Если это была обычная строка, а не base64 JSON
+      return res.status(200).json(vercelFlagsHeader);
     }
   }
 
-  // Если объект пустой — выдает "none", если флаги есть — отдаем весь JSON
-  const responseData = Object.keys(flags).length > 0 ? flags : "none";
-
-  return res.status(200).json(responseData);
+  // Если заголовка нет, значит флагов сейчас нет
+  return res.status(200).json("none");
 }
