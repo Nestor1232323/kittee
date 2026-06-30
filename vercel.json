@@ -64,6 +64,16 @@
       "source": "/:path((?!api/).*)",
       "has": [{ "type": "host", "value": "kittee-talk.vercel.app" }],
       "destination": "/kittee-talk/:path"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "k7ska.vercel.app" }],
+      "destination": "/k7ska/"
+    },
+    {
+      "source": "/:path((?!api/).*)",
+      "has": [{ "type": "host", "value": "k7ska.vercel.app" }],
+      "destination": "/k7ska/:path"
     }
   ]
 }
