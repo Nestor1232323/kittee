@@ -5,31 +5,26 @@ export default async function handler(req, res) {
   
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const flags = {};
+  const rawCookies = req.headers.cookie || '';
+  let flagsData = null;
 
-  // Перебираем все переменные из панели Vercel
-  for (const key in process.env) {
-    // Пропускаем системные служебные токены, чтобы не светить их
-    if (
-      key.includes('SECRET') || 
-      key.includes('TOKEN') || 
-      key.includes('KEY') || 
-      key.includes('URL') ||
-      key.startsWith('VERCEL_') && !key.includes('FLAG')
-    ) {
-      continue;
+  // Ищем куку флагов Vercel (Live Flags или Toolbar Overrides)
+  const match = rawCookies.match(/__(vercel_live_flags|vercel_toolbar_overrides)=([^;]+)/);
+
+  if (match && match[2]) {
+    try {
+      // Декодируем и парсим JSON, который прислал Vercel
+      flagsData = JSON.parse(decodeURIComponent(match[2]));
+    } catch (e) {
+      // Если там просто строка
+      flagsData = match[2];
     }
-
-    // Записываем значение (приводим строки 'true'/'false' к реальному boolean)
-    let value = process.env[key];
-    if (value === 'true') value = true;
-    if (value === 'false') value = false;
-
-    flags[key] = value;
   }
 
-  // Если нашли флаги — отдаем объект, если пусто — строку "none"
-  const responseData = Object.keys(flags).length > 0 ? flags : "none";
+  // Если флаги распарсились и это объект с ключами — отдаем его, иначе "none"
+  const response = (flagsData && typeof flagsData === 'object' && Object.keys(flagsData).length > 0) 
+    ? flagsData 
+    : "none";
 
-  return res.status(200).json(responseData);
+  return res.status(200).json(response);
 }
