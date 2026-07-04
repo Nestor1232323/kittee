@@ -79,6 +79,26 @@
       "source": "/articleview/",
       "has": [{ "type": "host", "value": "k7ska.vercel.app" }],
       "destination": "/k7ska/articleview.js"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "kitteeplus.vercel.app" }],
+      "destination": "/kitteeplus/"
+    },
+    {
+      "source": "/:path((?!api/).*)",
+      "has": [{ "type": "host", "value": "kitteeplus.vercel.app" }],
+      "destination": "/kitteeplus/:path"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "kittee-plus.vercel.app" }],
+      "destination": "/kitteeplus/"
+    },
+    {
+      "source": "/:path((?!api/).*)",
+      "has": [{ "type": "host", "value": "kittee-plus.vercel.app" }],
+      "destination": "/kitteeplus/:path"
     }
   ]
 }
